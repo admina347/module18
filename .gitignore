@@ -1,0 +1,5 @@
+/.vscode/
+/PatternCommand/bin/
+/PatternCommand/obj/
+*.json
+*.csproj
