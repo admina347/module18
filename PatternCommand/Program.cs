@@ -5,72 +5,58 @@ using YoutubeExplode;
 
 namespace PatternCommand;
 
-/// <summary>
-/// Базовый класс команды
-/// </summary>
-abstract class Command
+interface ICommand
 {
-    public abstract void Run();
-    public abstract void Cancel();
+    void ExecuteAsync();
+    void Undo();
 }
 
-/// <summary>
-/// Конкретная реализация команды.
-/// </summary>
-class CommandOne : Command
+
+
+class Video
 {
-    Receiver receiver;
+    YoutubeClient youtube = new YoutubeClient();
 
-    public CommandOne(Receiver receiver)
+    public async Task GetInfoAsync()
     {
-        this.receiver = receiver;
-    }
-
-    // Выполнить
-    public override async void Run()
-    {
-        Console.WriteLine("Команда отправлена");
-        //receiver.Operation();
-        await receiver.GetvideoInfoAsync();
-    }
-
-    // Отменить
-    public override void Cancel()
-    { }
-}
-
-/// <summary>
-/// Адресат команды
-/// </summary>
-class Receiver
-{
-    public void Operation()
-    {
-        Console.WriteLine("Процесс запущен");
-    }
-
-    public async Task GetvideoInfoAsync()
-    {
-        var youtube = new YoutubeClient();
-
         // You can specify both video ID or URL
         var video = await youtube.Videos.GetAsync("https://youtube.com/watch?v=u_yIGGhubZs");
 
         var title = video.Title; // "Collections - Blender 2.80 Fundamentals"
-        var author = video.Author.ChannelTitle; // "Blender"
-        var duration = video.Duration; // 00:07:20
+        //var author = video.Author.ChannelTitle; // "Blender"
+        var description = video.Description; // desc
         Console.WriteLine("Title: " + title);
+        Console.WriteLine("Description: " + description);
+    }
+
+    public void Off()
+    {
+        Console.WriteLine("Телевизор выключен...");
     }
 }
 
-/// <summary>
-/// Отправитель команды
-/// </summary>
+class GetVideoInfoCommand : ICommand
+{
+    Video video;
+    public GetVideoInfoCommand(Video video)
+    {
+        this.video = video;
+    }
+    public async void ExecuteAsync()
+    {
+        await video.GetInfoAsync();
+    }
+    public void Undo()
+    {
+        video.Off();
+    }
+}
+
 class Sender
 {
-    Command _command;
+    ICommand _command;
 
-    public void SetCommand(Command command)
+    public void SetCommand(ICommand command)
     {
         _command = command;
     }
@@ -78,39 +64,38 @@ class Sender
     // Выполнить
     public void Run()
     {
-        _command.Run();
+        _command.ExecuteAsync();
     }
 
     // Отменить
     public void Cancel()
     {
-        _command.Cancel();
+        _command.Undo();
     }
 }
 
 
-/// <summary>
-/// Клиентский код
-/// </summary>
 class Program
 {
-    static void Main()
+    static async Task Main()
     {
-        Console.OutputEncoding = Encoding.UTF8;
+        //Video video = new Video();
+        //await video.GetInfoAsync();
 
         // создадим отправителя 
         var sender = new Sender();
 
         // создадим получателя 
-        var receiver = new Receiver();
+        var video = new Video();
 
         // создадим команду 
-        var commandOne = new CommandOne(receiver);
+        var getVideoInfoCommand = new GetVideoInfoCommand(video);
 
         // инициализация команды
-        sender.SetCommand(commandOne);
+        sender.SetCommand(getVideoInfoCommand);
 
         //  выполнение
         sender.Run();
+
     }
 }
