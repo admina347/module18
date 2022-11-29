@@ -1,32 +1,46 @@
-﻿using System;
-using System.Text;
-using System.Threading.Tasks;
-using YoutubeExplode;
+﻿using YoutubeExplode;
 
 namespace PatternCommand;
 
 interface ICommand
 {
-    void ExecuteAsync();
+    Task ExecuteAsync();
     void Undo();
 }
 
 
 
-class Video
+class VideoPlayer
 {
     YoutubeClient youtube = new YoutubeClient();
 
     public async Task GetInfoAsync()
     {
-        // You can specify both video ID or URL
-        var video = await youtube.Videos.GetAsync("https://youtube.com/watch?v=u_yIGGhubZs");
+        Console.WriteLine("Введите Url video:");
+        string videoUrl = Console.ReadLine();
+        if (videoUrl != null)
+        {
+            try
+            {
+                // You can specify both video ID or URL
+                var video = await youtube.Videos.GetAsync(videoUrl);
 
-        var title = video.Title; // "Collections - Blender 2.80 Fundamentals"
-        //var author = video.Author.ChannelTitle; // "Blender"
-        var description = video.Description; // desc
-        Console.WriteLine("Title: " + title);
-        Console.WriteLine("Description: " + description);
+                var title = video.Title; // "Collections - Blender 2.80 Fundamentals"
+                                         //var author = video.Author.ChannelTitle; // "Blender"
+                var description = video.Description; // desc
+                Console.WriteLine("Title: " + title);
+                Console.WriteLine("Description: " + description);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Вы не ввели Url video! Попробуйте снова.");
+        }
+
     }
 
     public void Off()
@@ -37,21 +51,22 @@ class Video
 
 class GetVideoInfoCommand : ICommand
 {
-    Video video;
-    public GetVideoInfoCommand(Video video)
+    VideoPlayer videoPlayer;
+    public GetVideoInfoCommand(VideoPlayer videoPlayer)
     {
-        this.video = video;
+        this.videoPlayer = videoPlayer;
     }
-    public async void ExecuteAsync()
+    public async Task ExecuteAsync()
     {
-        await video.GetInfoAsync();
+        await videoPlayer.GetInfoAsync();
     }
     public void Undo()
     {
-        video.Off();
+        videoPlayer.Off();
     }
 }
 
+// Invoker - инициатор
 class Sender
 {
     ICommand _command;
@@ -61,13 +76,10 @@ class Sender
         _command = command;
     }
 
-    // Выполнить
-    public void Run()
+    public async Task Run()
     {
-        _command.ExecuteAsync();
+        await _command.ExecuteAsync();
     }
-
-    // Отменить
     public void Cancel()
     {
         _command.Undo();
@@ -86,16 +98,16 @@ class Program
         var sender = new Sender();
 
         // создадим получателя 
-        var video = new Video();
+        var videoPlayer = new VideoPlayer();
 
         // создадим команду 
-        var getVideoInfoCommand = new GetVideoInfoCommand(video);
+        var getVideoInfoCommand = new GetVideoInfoCommand(videoPlayer);
 
         // инициализация команды
         sender.SetCommand(getVideoInfoCommand);
 
         //  выполнение
-        sender.Run();
+        await sender.Run();
 
     }
 }
