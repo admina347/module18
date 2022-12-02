@@ -1,6 +1,4 @@
-﻿using System;
-using ShellProgressBar;
-using YoutubeExplode;
+﻿using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
 namespace PatternCommand;
@@ -8,7 +6,6 @@ namespace PatternCommand;
 interface ICommand
 {
     Task ExecuteAsync();
-    void Undo();
 }
 
 class VideoPlayer
@@ -18,7 +15,6 @@ class VideoPlayer
     public string Description { get; private set;}
     YoutubeClient youtube = new YoutubeClient();
     
-
     public async Task GetVideoInfoAsync()
     {
         //Пробуем получить инфо
@@ -28,19 +24,10 @@ class VideoPlayer
             var video = await youtube.Videos.GetAsync(videoUrl);
 
             Title = video.Title; // "Collections - Blender 2.80 Fundamentals"
-            //var author = video.Author.ChannelTitle; // "Blender"
             Description = video.Description; // desc
-            Console.WriteLine();
-            Console.WriteLine("============================");
-            Console.WriteLine("Title:");
-            Console.WriteLine("============================");
-            Console.WriteLine();
+            PrintCaption("Title:");
             Console.WriteLine(Title);
-            Console.WriteLine();
-            Console.WriteLine("============================");
-            Console.WriteLine("Description:");
-            Console.WriteLine("============================");
-            Console.WriteLine();
+            PrintCaption("Description:");
             Console.WriteLine(Description);
         }
         catch (Exception ex)
@@ -55,11 +42,7 @@ class VideoPlayer
         //var video = await youtube.Videos.GetAsync("https://youtube.com/watch?v=u_yIGGhubZs");
         try
         {
-            Console.WriteLine();
-            Console.WriteLine("============================");
-            Console.WriteLine("Скачиваю видео:");
-            Console.WriteLine("============================");
-            Console.WriteLine();
+            PrintCaption("Скачиваю видео:");
             Console.WriteLine(Title);
             //var progress = new Progress<double>
             var streamManifest = await youtube.Videos.Streams.GetManifestAsync(videoUrl);
@@ -68,20 +51,21 @@ class VideoPlayer
             // Download the stream to a file
             //Progress<double> pb = new Progress<double>(p => Console.WriteLine($"Progress updated: {p}"));
             await youtube.Videos.Streams.DownloadAsync(streamInfo, $"video.{streamInfo.Container}");
-            Console.WriteLine();
-            Console.WriteLine("============================");
-            Console.WriteLine("Скачивание завершено.");
-            Console.WriteLine("============================");
+            PrintCaption("Скачивание завершено.");
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
     }
-    public void Off()
+    public void PrintCaption(string caption)
     {
-        Console.WriteLine("Телевизор выключен...");
-    }   
+        Console.WriteLine();
+        Console.WriteLine("============================");
+        Console.WriteLine(caption);
+        Console.WriteLine("============================");
+        Console.WriteLine();
+    }
 }
 
 class GetVideoInfoCommand : ICommand
@@ -95,10 +79,6 @@ class GetVideoInfoCommand : ICommand
     {
         await videoPlayer.GetVideoInfoAsync();
     }
-    public void Undo()
-    {
-        videoPlayer.Off();
-    }
 }
 
 class DownloadVideoCommand : ICommand
@@ -111,10 +91,6 @@ class DownloadVideoCommand : ICommand
     public async Task ExecuteAsync()
     {
         await videoPlayer.DownloadVideoAsync();
-    }
-    public void Undo()
-    {
-        videoPlayer.Off();
     }
 }
 
@@ -132,22 +108,12 @@ class Sender
     {
         await _command.ExecuteAsync();
     }
-    public void Cancel()
-    {
-        _command.Undo();
-    }
 }
-
-
-
 
 class Program
 {
     static async Task Main()
     {
-        //Video video = new Video();
-        //await video.GetInfoAsync();
-
         // создадим отправителя 
         var sender = new Sender();
 
